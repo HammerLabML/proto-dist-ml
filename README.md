@@ -51,12 +51,8 @@ For an example we recommend to take a look at the demo in the notebook
 `demo.ipynb`. In general, all models in this library follow the [scikit-learn][scikit]
 convention, i.e. you need to perform the following steps:
 
-1. Instantiate your model, e.g. via
-```
-from proto_dist_ml.rng import RNG
-model = RNG(K)
-```
-    where `K` is the number of prototypes.
+1. Instantiate your model, e.g. via `model = proto_dist_ml.rng.RNG(K)` where
+    `K` is the number of prototypes.
 2. Fit your model to training data, e.g. via `model.fit(D)`, where `D` is the
     matrix of pairwise distances between your training data points.
 3. Perform a prediction for test data, e.g. via `model.predict(D)`, where `D`
@@ -73,7 +69,7 @@ defined as
 ```math
 \vec w_k = \sum_{i=1}^m \alpha_{k, i} \cdot \vec x_i
 \qquad \text{where } \sum_{i=1}^m \alpha_{k, i} = 1
-\text{ and } \alpha_{k, i} \geq 0 \forall i
+\text{ and } \alpha_{k, i} \geq 0 \quad \forall i
 ```
 
 where $`\vec x_1, \ldots, \vec x_m`$ are the training data points and where
