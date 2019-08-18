@@ -83,7 +83,8 @@ class RNG(BaseEstimator, ClusterMixin):
         strict as for k-means.
 
         Args:
-        D: A m x m matrix of pairwise distances.
+        D: A m x m matrix of pairwise distances, which need to be symmetric
+           and zero on the diagonal.
         y: This parameter is ignored and is only here for API consistency.
         is_squared: If set to true, this method assumes D is already a matrix
                     of squared distances. Otherwise, the distances get squared.
@@ -97,7 +98,6 @@ class RNG(BaseEstimator, ClusterMixin):
             raise ValueError('Input matrix is not symmetric!')
         if(np.sum(np.square(np.diag(D))) > 1E-3):
             raise ValueError('The diagonal of the input matrix is not zero!')
-        m = D.shape[0]
         if(not is_squared):
             D = np.square(D)
         m = D.shape[0]
