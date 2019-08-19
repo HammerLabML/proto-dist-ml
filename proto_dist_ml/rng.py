@@ -24,6 +24,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import numpy as np
+from scipy.sparse import csr_matrix
 from sklearn.base import BaseEstimator, ClusterMixin
 
 __author__ = 'Benjamin Paaßen'
@@ -36,6 +37,7 @@ __email__  = 'bpaassen@techfak.uni-bielefeld.de'
 _CUTOFF = np.log(10) * 3
 _LAMBDA_FINAL = 0.5 / _CUTOFF
 _ERR_CUTOFF = 1E-5
+_COEFF_CUTOFF = 1E-3
 
 class RNG(BaseEstimator, ClusterMixin):
     """ A relational neural gas clustering model, which assigns data to
@@ -51,9 +53,9 @@ class RNG(BaseEstimator, ClusterMixin):
     lambda_0: The initial neighborhood range, i.e. the rank on which the
               prototype influence on a datapoint degrades to 1/e. Defaults
               to K / 2.
-    _Alpha:   A K x m matrix storing the convex coefficients that describe the
-              prototypes.
-    _Z:       A K x 1 vector storing the normalization constants
+    _Alpha:   A K x m matrix sparse matrix storing the convex coefficients
+              that describe the prototypes.
+    _z:       A K x 1 vector storing the normalization constants
               -0.5*_Alpha[k, :] * D² * _Alpha[k, :].T for all k.
     _loss:    The relational neural gas loss during the last training run
     """
@@ -73,7 +75,7 @@ class RNG(BaseEstimator, ClusterMixin):
 
         1. We compute the squared data-to-prototype distances via the
            relational distance formula:
-           d(w_k, x_i)² = _Alpha[k, :] * D[:, i]² - _Z[k]
+           d(w_k, x_i)² = _Alpha[k, :] * D[:, i]² - _z[k]
         2. We compute the ranks of each prototype for each data point, i.e.
            r_i(k) = |{l | d(w_l, x_i)² < d(w_k, x_i)² }|
         3. We update the coefficients _Alpha via the formula
@@ -105,7 +107,7 @@ class RNG(BaseEstimator, ClusterMixin):
         self._Alpha = np.random.rand(self.K, m)
         self._Alpha /= np.expand_dims(np.sum(self._Alpha, axis=1), 1)
         # initialize the vector of normalization constants
-        self._Z = np.zeros(self.K)
+        self._z = np.zeros(self.K)
         # initialize the ranking matrix
         R = np.zeros((self.K, m), dtype=int)
         # initialize lambda
@@ -116,16 +118,16 @@ class RNG(BaseEstimator, ClusterMixin):
         for t in range(self.T):
             # re-compute the normalization constants for each prototype
             for k in range(self.K):
-                self._Z[k] = -0.5 * np.dot(self._Alpha[k, :], np.dot(D, self._Alpha[k, :].T))
+                self._z[k] = -0.5 * np.dot(self._Alpha[k, :], np.dot(D, self._Alpha[k, :].T))
             # re-compute the prototype-to-datapoint distances;
             # add the normalization via broadcasting
-            Dp = np.dot(self._Alpha, D) + np.expand_dims(self._Z, 1)
+            Dp = np.dot(self._Alpha, D) + np.expand_dims(self._z, 1)
             # compute the training loss
             loss = np.sum(Dp * self._Alpha)
             if(self._loss and self._loss[-1] - loss < _ERR_CUTOFF):
                 # if we do not reduce the loss meaningfully anymore,
                 # break off training early
-                return self
+                break
             self._loss.append(loss)
             # re-compute the ranks by sorting the distances
             idxs  = np.argsort(Dp, axis=0)
@@ -144,9 +146,15 @@ class RNG(BaseEstimator, ClusterMixin):
             self._Alpha /= np.expand_dims(np.sum(self._Alpha, axis=1), 1)
             # adapt lambda
             lambd *= dampen
+        # post-process alpha to remove very small values
+        self._Alpha[self._Alpha < _COEFF_CUTOFF] = 0.
+        # re-normalize
+        self._Alpha /= np.expand_dims(np.sum(self._Alpha, axis=1), 1)
+        # make alpha sparse
+        self._Alpha = csr_matrix(self._Alpha)
         # re-compute the normalization constants for each prototype
         for k in range(self.K):
-            self._Z[k] = -0.5 * np.dot(self._Alpha[k, :], np.dot(D, self._Alpha[k, :].T))
+            self._z[k] = -0.5 * self._Alpha[k, :].dot((self._Alpha[k, :].dot(D)).T)
         return self
 
     def predict(self, D, is_squared = False):
@@ -173,7 +181,7 @@ class RNG(BaseEstimator, ClusterMixin):
             D = np.square(D)
         # compute the datapoint-to-prototype distances;
         # add the normalization via broadcasting
-        Dp = np.dot(D, self._Alpha.T) + np.expand_dims(self._Z, 0)
+        Dp = self._Alpha.dot(D.T) + np.expand_dims(self._z, 1)
         # get the closest prototype for each datapoint
-        y = np.argmin(Dp, axis=1)
+        y = np.argmin(Dp, axis=0)
         return y

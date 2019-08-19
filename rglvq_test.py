@@ -159,7 +159,7 @@ class TestRGLVQ(unittest.TestCase):
         # check the result
         W_actual = model._Alpha.dot(X)
         # ensure high classification accuracy
-        self.assertTrue(model.score(D, y) > 0.9)
+        self.assertTrue(model.score(D, y) > 0.8)
 
 if __name__ == '__main__':
     unittest.main()

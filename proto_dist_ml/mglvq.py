@@ -113,10 +113,10 @@ class MGLVQ(BaseEstimator, ClassifierMixin):
             D_l   = np.square(D[inClass_l, :][:, inClass_l])
             rng_l = rng.RNG(self.K)
             rng_l.fit(D_l, is_squared = True)
-            # compute the data-to-prototype distances
-            Dp_l = np.dot(D_l, rng_l._Alpha.T) + np.expand_dims(rng_l._Z, 0)
+            # compute the prototype-to-data distances
+            Dp_l = rng_l._Alpha.dot(D_l) + np.expand_dims(rng_l._z, 1)
             # get the closest data point to each prototype
-            closest = np.argmin(Dp_l, axis=0)
+            closest = np.argmin(Dp_l, axis=1)
             # store those as initial prototypes
             self._w[l*self.K:(l+1)*self.K] = inClass_l[closest]
         del inClass_l

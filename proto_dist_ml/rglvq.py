@@ -147,7 +147,7 @@ class RGLVQ(BaseEstimator, ClassifierMixin):
                 D_l   = D[inClass_l, :][:, inClass_l]
                 rng_l = rng.RNG(self.K)
                 rng_l.fit(D_l, is_squared = True)
-                self._Alpha[l*self.K:(l+1)*self.K, :][:, inClass_l] = rng_l._Alpha
+                self._Alpha[l*self.K:(l+1)*self.K, :][:, inClass_l] = rng_l._Alpha.toarray()
             del rng_l
         del inClass_l
         del D_l

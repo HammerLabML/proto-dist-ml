@@ -56,7 +56,7 @@ class TestRNG(unittest.TestCase):
         # train it
         model.fit(D)
         # check the result
-        W_actual = np.dot(model._Alpha, X)
+        W_actual = model._Alpha.dot(X)
         idxs = model.predict(cdist(W_expected, X))
         np.testing.assert_allclose(W_actual[idxs, :], W_expected, atol=0.5)
 
