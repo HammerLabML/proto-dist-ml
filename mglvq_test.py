@@ -64,6 +64,8 @@ class TestMGLVQ(unittest.TestCase):
         # check the result
         W_actual = X[model._w, :]
         np.testing.assert_allclose(W_actual, W_expected, atol=1.)
+        # ensure high classification accuracy
+        self.assertTrue(model.score(D, y) > 0.8)
 
     def test_mgvlq2(self):
         # create a rather simple test data set of K Gaussian clusters in a circle,
@@ -94,6 +96,8 @@ class TestMGLVQ(unittest.TestCase):
         # check the result
         W_actual = X[model._w, :]
         np.testing.assert_allclose(W_actual, W_expected, atol=1.)
+        # ensure high classification accuracy
+        self.assertTrue(model.score(D, y) > 0.8)
 
     def test_mgvlq3(self):
         # create a rather simple test data set of K Gaussian clusters in a circle,
@@ -129,6 +133,8 @@ class TestMGLVQ(unittest.TestCase):
             # very close expected prototype
             D_l = cdist(W_actual[model._y == l, :], W_expected[y_W == l, :])
             np.testing.assert_allclose(np.min(D_l, axis=1), np.zeros(len(D_l)), atol=1.)
+        # ensure high classification accuracy
+        self.assertTrue(model.score(D, y) > 0.8)
 
     def test_mgvlq4(self):
         # create a data set with four clusters placed in a square,
