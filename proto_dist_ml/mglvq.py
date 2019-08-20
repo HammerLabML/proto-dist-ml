@@ -102,26 +102,26 @@ class MGLVQ(BaseEstimator, ClassifierMixin):
         # set up the model arrays
         unique_labels = np.unique(y)
         L = len(unique_labels)
-        self._w = np.zeros(self.K * L, dtype=int)
-        self._y = np.zeros(self.K * L)
 
-        # otherwise, use class-wise relational neural gas to get a good
-        # initialization
-        for l in range(L):
-            self._y[l*self.K:(l+1)*self.K] = unique_labels[l]
-            inClass_l  = np.where(unique_labels[l] == y)[0]
-            D_l   = np.square(D[inClass_l, :][:, inClass_l])
-            rng_l = rng.RNG(self.K)
-            rng_l.fit(D_l, is_squared = True)
-            # compute the prototype-to-data distances
-            Dp_l = rng_l._Alpha.dot(D_l) + np.expand_dims(rng_l._z, 1)
-            # get the closest data point to each prototype
-            closest = np.argmin(Dp_l, axis=1)
-            # store those as initial prototypes
-            self._w[l*self.K:(l+1)*self.K] = inClass_l[closest]
-        del inClass_l
-        del D_l
-        del rng_l
+        # use class-wise relational neural gas to get a good initialization
+        if(not hasattr(self, 'prevent_initialization') or not self.prevent_initialization):
+            self._w = np.zeros(self.K * L, dtype=int)
+            self._y = np.zeros(self.K * L)
+            for l in range(L):
+                self._y[l*self.K:(l+1)*self.K] = unique_labels[l]
+                inClass_l  = np.where(unique_labels[l] == y)[0]
+                D_l   = np.square(D[inClass_l, :][:, inClass_l])
+                rng_l = rng.RNG(self.K)
+                rng_l.fit(D_l, is_squared = True)
+                # compute the prototype-to-data distances
+                Dp_l = rng_l._Alpha.dot(D_l) + np.expand_dims(rng_l._z, 1)
+                # get the closest data point to each prototype
+                closest = np.argmin(Dp_l, axis=1)
+                # store those as initial prototypes
+                self._w[l*self.K:(l+1)*self.K] = inClass_l[closest]
+            del inClass_l
+            del D_l
+            del rng_l
 
         # then, compute the initial GLVQ loss. We also compute the closest
         # and second-closest prototype for each data point, because we need
@@ -299,24 +299,31 @@ class MGLVQ(BaseEstimator, ClassifierMixin):
         # set up the model arrays
         unique_labels = np.unique(y)
         L = len(unique_labels)
-        self._w = np.zeros(self.K * L, dtype=int)
-        self._y = np.zeros(self.K * L)
         if(L <= 2):
             # if we have only a binary classification problem, there is
             # no ambiguity in prototype assignment at all and we can
             # use a very simple fit method
             return self._fit_single_binary(D, y)
-        # initialize the prototypes as the data points which
-        # are closest to the respective class means
+        if(not hasattr(self, 'prevent_initialization') or not self.prevent_initialization):
+            # initialize the prototypes as the data points which
+            # are closest to the respective class means
+            self._w = np.zeros(self.K * L, dtype=int)
+            self._y = np.zeros(self.K * L)
+            for l in range(L):
+                self._y[l] = unique_labels[l]
+                inClass_l  = np.where(unique_labels[l] == y)[0]
+                D_l = np.square(D[inClass_l, :][:, inClass_l])
+                self._w[l] = inClass_l[np.argmin(np.sum(D_l, axis=0))]
+            del inClass_l
+            del D_l
+        # initialize the closest positive for each data point, which
+        # necessarily is the only prototype within the class
         closest_plus = np.zeros(self._m, dtype=int)
         for l in range(L):
-            self._y[l] = unique_labels[l]
+            if(self._y[l] != unique_labels[l]):
+                raise ValueError('expected the %dth prototype to have label %s, but had %s' % (l, str(unique_labels[l]), str(self._y[l])))
             inClass_l  = np.where(unique_labels[l] == y)[0]
             closest_plus[inClass_l] = l
-            D_l = np.square(D[inClass_l, :][:, inClass_l])
-            self._w[l] = inClass_l[np.argmin(np.sum(D_l, axis=0))]
-        del inClass_l
-        del D_l
 
         # then, compute the initial GLVQ loss. We also compute the closest
         # and second-closest prototype for each data point, because we need
@@ -459,23 +466,31 @@ class MGLVQ(BaseEstimator, ClassifierMixin):
         # set up the model arrays
         unique_labels = np.unique(y)
         L = len(unique_labels)
-        self._w = np.zeros(self.K * L, dtype=int)
-        self._y = np.zeros(self.K * L)
         if(L > 2):
             raise ValueError('This method is only intended for binary classification problems, but got %d labels' % L)
-        # initialize the prototypes as the data points which
-        # are closest to the respective class means
+        if(not hasattr(self, 'prevent_initialization') or not self.prevent_initialization):
+            # initialize the prototypes as the data points which
+            # are closest to the respective class means
+            self._w = np.zeros(self.K * L, dtype=int)
+            self._y = np.zeros(self.K * L)
+            for l in range(L):
+                self._y[l] = unique_labels[l]
+                inClass_l  = np.where(unique_labels[l] == y)[0]
+                D_l = np.square(D[inClass_l, :][:, inClass_l])
+                self._w[l] = inClass_l[np.argmin(np.sum(D_l, axis=0))]
+            del inClass_l
+            del D_l
+
+        # initialize the closest positives for each data point, which
+        # necessarily are the only prototype within and without the class
         closest_plus = np.zeros(self._m, dtype=int)
         closest_minus = np.zeros(self._m, dtype=int)
         for l in range(L):
-            self._y[l] = unique_labels[l]
+            if(self._y[l] != unique_labels[l]):
+                raise ValueError('expected the %dth prototype to have label %s, but had %s' % (l, str(unique_labels[l]), str(self._y[l])))
             inClass_l  = np.where(unique_labels[l] == y)[0]
             closest_plus[inClass_l] = l
             closest_minus[inClass_l] = 1-l
-            D_l = np.square(D[inClass_l, :][:, inClass_l])
-            self._w[l] = inClass_l[np.argmin(np.sum(D_l, axis=0))]
-        del inClass_l
-        del D_l
 
         # then, compute the initial GLVQ loss.
         self._loss = []
