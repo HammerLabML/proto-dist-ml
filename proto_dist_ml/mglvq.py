@@ -41,7 +41,7 @@ class MGLVQ(BaseEstimator, ClassifierMixin):
     identifying a subset of data points, called prototypes, which maximize
     the accuracy of a one-nearest neighbor classifier based on only this
     subet of data points. This makes such a model quite efficient because
-    for classification we only need the distances to the prototypes.
+    we only need the distances to the prototypes for classification.
 
     Attributes:
     K:        The number of prototypes per class to be learned.
@@ -52,7 +52,7 @@ class MGLVQ(BaseEstimator, ClassifierMixin):
     _w:       A K dimensional index vector storing for each prototype the
               index in the training data.
     _y:       A K dimensional label vector.
-    _loss:    The relational neural gas loss during the last training run
+    _loss:    The GLVQ loss during the last training run
     """
     def __init__(self, K, T = 50, phi = None):
         self.K = K
@@ -519,6 +519,7 @@ class MGLVQ(BaseEstimator, ClassifierMixin):
                 for i in receptive_field_plus_k:
                     if(i == self._w[k]):
                         continue
+
                     # If set change self._w[k] = i, all data points in class
                     # self._y[k] have a different dp value and all points in
                     # the opposite class have a different dm value
@@ -536,6 +537,7 @@ class MGLVQ(BaseEstimator, ClassifierMixin):
                     if(delta_loss < best_delta_loss):
                         best_delta_loss = delta_loss
                         best_i = i
+
                 # if we have found an option that is better than nothing, take
                 # it greedily and break off the search
                 if(best_delta_loss < 0.):
