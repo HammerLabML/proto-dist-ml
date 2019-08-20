@@ -59,12 +59,13 @@ class RGLVQ(BaseEstimator, ClassifierMixin):
     phi:      A squashing function to post-process each error term. Defaults
               to the identity.
     phi_grad: The gradient function corresponding to phi
-    _Alpha:   A K x m matrix sparse matrix storing the convex coefficients
-              that describe the prototypes.
-    _z:       A K x 1 vector storing the normalization constants
+    _Alpha:   A K * num_labels x m matrix sparse matrix storing the convex
+              coefficients that describe the prototypes.
+    _z:       A K * num_labels x 1 vector storing the normalization constants
               -0.5*_Alpha[k, :] * D² * _Alpha[k, :].T for all k.
-    _y:       A K dimensional vector storing the label for each prototype.
-    _loss:    The relational neural gas loss during the last training run
+    _y:       A K * num_labels dimensional vector storing the label for each
+              prototype.
+    _loss:    The GLVQ loss after L-BFGS optimization.
     """
     def __init__(self, K, T = 100, phi = None, phi_grad = None):
         self.K = K
@@ -187,7 +188,20 @@ class RGLVQ(BaseEstimator, ClassifierMixin):
         return self
 
     def _loss_and_grad(self, Alpha, D, y, unique_labels):
+        """ Computes the GLVQ loss and gradient for the current convex
+        coefficients Alpha.
 
+        Args:
+        Alpha: The convex coefficients representing the prototypes.
+        D:     The matrix of squared pairwise distances between training data
+               points.
+        y:     The labels of all training data points.
+        unique_labels: The unique labels in y.
+
+        Returns:
+        loss: The current GLVQ loss.
+        Grad: The current gradient of the GLVQ loss with respect to Alpha.
+        """
         # reshape Alpha back into a matrix if its flattened for optimization
         is_flat = False
         if(len(Alpha.shape) == 1):
@@ -231,7 +245,7 @@ class RGLVQ(BaseEstimator, ClassifierMixin):
             dp[inClass_l] = Dp[idxs, np.arange(len(inClass_l))]
             # compute the distances to all prototypes in a different class.
             Dm = A[outClass_w_l, :][:, inClass_l] + np.expand_dims(z[outClass_w_l], 1)
-            # find the closest prototype in the same class
+            # find the closest prototype in different class
             idxs = np.argmin(Dm, axis=0)
             closest_minus[inClass_l] = outClass_w_l[idxs]
             dm[inClass_l] = Dm[idxs, np.arange(len(inClass_l))]
