@@ -162,8 +162,8 @@ class RGLVQ(BaseEstimator, ClassifierMixin):
         res = minimize(obj, self._Alpha.ravel(), method='L-BFGS-B', jac = True, options = options)
 
         # check optimization result
-        if(not res.success):
-            print('warning: optimization failed with message %s' % str(res.message))
+        if(res.x is None):
+            raise ValueError('Optimization returned none and failed with message: %s!' % str(res.message))
         self._Alpha = res.x.reshape(self._Alpha.shape)
         self._loss  = res.fun
 
@@ -282,8 +282,9 @@ class RGLVQ(BaseEstimator, ClassifierMixin):
             raise ValueError('Expected %d columns in the input distance matrix, but got %d!' % (self._Alpha.shape[1], m))
         if(not is_squared):
             D = np.square(D)
-        # compute the datapoint-to-prototype distances
-        Dp = self._Alpha.dot(D) - np.expand_dims(self._z, 1)
+        # compute the datapoint-to-prototype distances;
+        # add the normalization via broadcasting
+        Dp = self._Alpha.dot(D.T) - np.expand_dims(self._z, 1)
         # get the closest prototype for each datapoint
         closest = np.argmin(Dp, axis=0)
         # return the label of the respective prototype
