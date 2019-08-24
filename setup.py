@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="proto_dist_ml",
-    version="1.0.0",
+    version="1.0.1",
     author="Benjamin Paassen",
     author_email="bpaassen@techfak.uni-bielefeld.de",
     description="Prototype-based Machine Learning on Distance Data.",
