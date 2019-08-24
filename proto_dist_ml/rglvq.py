@@ -97,6 +97,7 @@ class RGLVQ(BaseEstimator, ClassifierMixin):
         re-written as follows:
 
         d_ik^2 = _Alpha[k, :] * D[:, i]^2 - 0.5 * _Alpha[k, :] * D^2 * _Alpha[k, :].T,
+               = _Alpha[k, :] * D[:, i]^2 + _z[k]
 
         yielding the gradient
 
@@ -298,7 +299,7 @@ class RGLVQ(BaseEstimator, ClassifierMixin):
             D = np.square(D)
         # compute the datapoint-to-prototype distances;
         # add the normalization via broadcasting
-        Dp = self._Alpha.dot(D.T) - np.expand_dims(self._z, 1)
+        Dp = self._Alpha.dot(D.T) + np.expand_dims(self._z, 1)
         # get the closest prototype for each datapoint
         closest = np.argmin(Dp, axis=0)
         # return the label of the respective prototype

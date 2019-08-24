@@ -75,7 +75,7 @@ class RNG(BaseEstimator, ClusterMixin):
 
         1. We compute the squared data-to-prototype distances via the
            relational distance formula:
-           d(w_k, x_i)² = _Alpha[k, :] * D[:, i]² - _z[k]
+           d(w_k, x_i)² = _Alpha[k, :] * D[:, i]² + _z[k]
         2. We compute the ranks of each prototype for each data point, i.e.
            r_i(k) = |{l | d(w_l, x_i)² < d(w_k, x_i)² }|
         3. We update the coefficients _Alpha via the formula
