@@ -4,25 +4,26 @@ Implements median generalized vector quantization, inspired by the paper
 Nebel, D., Hammer, B., Frohberg, K., & Villmann, T. (2015). Median variants
 of learning vector quantization for learning of dissimilarity data.
 Neurocomputing, 169, 295-305. doi:10.1016/j.neucom.2014.12.096
-
-Copyright (C) 2019
-Benjamin Paaßen
-AG Machine Learning
-Bielefeld University
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+# Copyright (C) 2019
+# Benjamin Paaßen
+# AG Machine Learning
+# Bielefeld University
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 import proto_dist_ml.rng as rng
@@ -30,7 +31,7 @@ import proto_dist_ml.rng as rng
 __author__ = 'Benjamin Paaßen'
 __copyright__ = 'Copyright 2019, Benjamin Paaßen'
 __license__ = 'GPLv3'
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 __maintainer__ = 'Benjamin Paaßen'
 __email__  = 'bpaassen@techfak.uni-bielefeld.de'
 
@@ -43,16 +44,29 @@ class MGLVQ(BaseEstimator, ClassifierMixin):
     subet of data points. This makes such a model quite efficient because
     we only need the distances to the prototypes for classification.
 
-    Attributes:
-    K:        The number of prototypes per class to be learned.
-    T:        The number of epochs in training. Defaults to 50.
-    phi:      A squashing function to post-process each error term. Defaults
-              to the identity.
-    _m:       The number of training data points.
-    _w:       A K dimensional index vector storing for each prototype the
-              index in the training data.
-    _y:       A K dimensional label vector.
-    _loss:    The GLVQ loss during the last training run
+    Attributes
+    ----------
+    K: int
+        The number of prototypes per class to be learned.
+    T: int (optional, default=50)
+        The number of epochs in training.
+    phi: function handle (optional, default=identity)
+        A squashing function to post-process each error term. Defaults
+        to the identity.
+    _m: int
+        The number of training data points. This is not set by the user
+        but during fit().
+    _w: array_like
+        A K dimensional index vector storing for each prototype the
+        index in the training data. This is not set by the user but during
+        fit().
+    _y: array_like
+        A K dimensional label vector. This is not set by the user but during
+        fit().
+    _loss: array_like
+        The GLVQ loss during the last training run. This is not set by the
+        user but during fit().
+
     """
     def __init__(self, K, T = 50, phi = None):
         self.K = K
@@ -86,10 +100,19 @@ class MGLVQ(BaseEstimator, ClassifierMixin):
         fewer computations because we can greedily accept the first change that
         improves our loss.
 
-        Args:
-        D: A m x m matrix of pairwise distances. Note that we have no
-           preconditions for this matrix. It may even be asymmetric.
-        y: A m dimensional label vector for the data points.
+        Parameters
+        ----------
+        D: array_like
+            A m x m matrix of pairwise distances. Note that we have no
+            preconditions for this matrix. It may even be asymmetric.
+        y: array_like
+            A m dimensional label vector for the data points.
+
+        Returns
+        -------
+        class proto_dist_ml.mglvq.MGLVQ
+            self
+
         """
         if(self.K == 1):
             return self._fit_single(D, y)
@@ -283,10 +306,19 @@ class MGLVQ(BaseEstimator, ClassifierMixin):
         only a single prototype per class, such that no ambiguity for
         the positive prototype exists.
 
-        Args:
-        D: A m x m matrix of pairwise distances. Note that we have no
-           preconditions for this matrix. It may even be asymmetric.
-        y: A m dimensional label vector for the data points.
+        Parameters
+        ----------
+        D: array_like
+            A m x m matrix of pairwise distances. Note that we have no
+            preconditions for this matrix. It may even be asymmetric.
+        y: array_like
+            A m dimensional label vector for the data points.
+
+        Returns
+        -------
+        class proto_dist_ml.mglvq.MGLVQ
+            self
+
         """
         if(self.K > 1):
             raise ValueError('This method is only intended for training with a single prototype, but got K = %d' % self.K)
@@ -450,10 +482,19 @@ class MGLVQ(BaseEstimator, ClassifierMixin):
         a binary classification problem with a single prototype per class,
         in which case the prototype assignment is always clear.
 
-        Args:
-        D: A m x m matrix of pairwise distances. Note that we have no
-           preconditions for this matrix. It may even be asymmetric.
-        y: A m dimensional label vector for the data points.
+        Parameters
+        ----------
+        D: array_like
+            A m x m matrix of pairwise distances. Note that we have no
+            preconditions for this matrix. It may even be asymmetric.
+        y: array_like
+            A m dimensional label vector for the data points.
+
+        Returns
+        -------
+        class proto_dist_ml.mglvq.MGLVQ
+            self
+
         """
         if(self.K > 1):
             raise ValueError('This method is only intended for training with a single prototype, but got K = %d' % self.K)
@@ -566,14 +607,18 @@ class MGLVQ(BaseEstimator, ClassifierMixin):
         """ Predicts the label for the given test data, represented by their
         distances either to all training data points or only to the prototypes.
 
-        Args:
+        Parameters
+        ----------
         D: A n x m matrix of distances from the test to the training
            datapoints OR a n x K matrix of distances from the test datapoints
            to the prototypes
 
-        Return:
-        y: a n-dimensional vector containing the predicted labels for each test
-           datapoint.
+        Returns
+        -------
+        y: array_like
+            a n-dimensional vector containing the predicted labels for each
+            test datapoint.
+
         """
         # check the dimensionality
         n = D.shape[0]

@@ -31,8 +31,6 @@ the following algorithms:
 Refer to the Quickstart Guide for a note on how to use these models and
 refer to the Background section for more details on the algorithms.
 
-Note that this library follows the 
-
 If you intend to use this library in academic work, please cite the respective
 reference paper.
 

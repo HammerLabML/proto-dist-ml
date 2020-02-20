@@ -6,25 +6,26 @@ Hammer, B., Hofmann, D., Schleif, F., & Zhu, X. (2014). Learning vector
 quantization for (dis-)similarities. Neurocomputing, 131, 43-51.
 doi:10.1016/j.neucom.2013.05.054.
 URL: http://www.techfak.uni-bielefeld.de/~fschleif/pdf/nc_diss_2014.pdf
-
-Copyright (C) 2019
-Benjamin Paaßen
-AG Machine Learning
-Bielefeld University
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+# Copyright (C) 2019
+# Benjamin Paaßen
+# AG Machine Learning
+# Bielefeld University
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import numpy as np
 from scipy.optimize import minimize
 from scipy.sparse import csr_matrix
@@ -34,7 +35,7 @@ import proto_dist_ml.rng as rng
 __author__ = 'Benjamin Paaßen'
 __copyright__ = 'Copyright 2019, Benjamin Paaßen'
 __license__ = 'GPLv3'
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 __maintainer__ = 'Benjamin Paaßen'
 __email__  = 'bpaassen@techfak.uni-bielefeld.de'
 
@@ -52,20 +53,31 @@ class RGLVQ(BaseEstimator, ClassifierMixin):
     semi-definite). If that is not the case, negative distances may occur
     which can hurt the model during training.
 
-    Attributes:
-    K:        The number of prototypes per class to be learned.
-    T:        The maximum number of BFGS optimization steps during training.
-              Defaults to 100.
-    phi:      A squashing function to post-process each error term. Defaults
-              to the identity.
-    phi_grad: The gradient function corresponding to phi
-    _Alpha:   A K * num_labels x m matrix sparse matrix storing the convex
-              coefficients that describe the prototypes.
-    _z:       A K * num_labels x 1 vector storing the normalization constants
-              -0.5*_Alpha[k, :] * D² * _Alpha[k, :].T for all k.
-    _y:       A K * num_labels dimensional vector storing the label for each
-              prototype.
-    _loss:    The GLVQ loss after L-BFGS optimization.
+    Attributes
+    ----------
+    K: int
+        The number of prototypes per class to be learned.
+    T: int (optional, default=100)
+        The maximum number of BFGS optimization steps during training.
+    phi: function handle (optional, default=identity)
+        A squashing function to post-process each error term.
+    phi_grad: function handle (optional, default=1)
+        The gradient function corresponding to phi.
+    _Alpha: array_like
+        A K * num_labels x m matrix sparse matrix storing the convex
+        coefficients that describe the prototypes.
+        describe the prototypes. This is not set by the user but during fit().
+    _z: array_like
+        A K x 1 vector storing the normalization constants
+        -0.5*_Alpha[k, :] * D² * _Alpha[k, :].T for all k.
+        This is not set by the user but during fit().
+    _y: array_like
+        A K * num_labels dimensional vector storing the label for each
+        prototype. This is not set by the user but during fit().
+    _loss: array_like
+        The GLVQ loss after L-BFGS optimization. This is not set by the user
+        but during fit().
+
     """
     def __init__(self, K, T = 100, phi = None, phi_grad = None):
         self.K = K
@@ -83,7 +95,7 @@ class RGLVQ(BaseEstimator, ClassifierMixin):
         In more detail, the training optimizes the GLVQ loss function, which
         is given as
 
-        sum_i self.phi[(d_i^+ - d_i^-) / (d_i^+ + d_i^-)]
+        .. math:: sum_i \\Phi\Big(\\frac{d_i^+ - d_i^-}{d_i^+ + d_i^-}\\Big)
 
         where i is the data point index, d_i^+ is the distance of i to the
         closest prototype with the same label and d_i^- is the distance of the
@@ -96,22 +108,33 @@ class RGLVQ(BaseEstimator, ClassifierMixin):
         because the distance between data point i and prototype k can be
         re-written as follows:
 
-        d_ik^2 = _Alpha[k, :] * D[:, i]^2 - 0.5 * _Alpha[k, :] * D^2 * _Alpha[k, :].T,
-               = _Alpha[k, :] * D[:, i]^2 + _z[k]
+        .. math:: d_{i,k}^2 = \\vec \\alpha_k \\cdot D_{:, i}^2
+            - 0.5 \\cdot \\vec \\alpha_k \\cdot D^2 \\cdot \\vec \\alpha_k^T
+               = \\vec \\alpha_k \\cdot D_{:, i}^2 + z_k
 
-        yielding the gradient
+        where alpha_k is self._Alpha[k, :]. This yields the gradient
 
-        grad(d_ik^2) = D[i, :]^2 - _Alpha[k, :] * D^2
+        .. math:: \\nabla_{\\vec \\alpha_k} d_{i, k}^2 = D_{i, :}^2 - D^2 \\cdot \\vec \\alpha_k
 
         Note that each gradient computation is quadratic in the number of
         nonzero entries of _Alpha[k, :], which may be expensive.
 
-        Args:
-        D: A m x m matrix of pairwise distances. Note that we have no
-           preconditions for this matrix. It may even be asymmetric.
-        y: A m dimensional label vector for the data points.
-        is_squared: If set to true, this method assumes D is already a matrix
-                    of squared distances. Otherwise, the distances get squared.
+        Parameters
+        ----------
+        D: array_like
+            A m x m matrix of pairwise distances. Note that we have no
+            preconditions for this matrix. It may even be asymmetric.
+        y: array_like
+            A m dimensional label vector for the data points.
+        is_squared: bool (optional, default = False)
+            If set to true, this method assumes D is already a matrix
+            of squared distances. Otherwise, the distances get squared.
+
+        Returns
+        -------
+        class proto_dist_ml.rglvq.RGLVQ
+            self
+
         """
         # check symmetry and zero diagonal
         if(len(D.shape) != 2):
@@ -192,16 +215,25 @@ class RGLVQ(BaseEstimator, ClassifierMixin):
         """ Computes the GLVQ loss and gradient for the current convex
         coefficients Alpha.
 
-        Args:
-        Alpha: The convex coefficients representing the prototypes.
-        D:     The matrix of squared pairwise distances between training data
-               points.
-        y:     The labels of all training data points.
-        unique_labels: The unique labels in y.
+        Arguments
+        ---------
+        Alpha: array_like
+            The convex coefficients representing the prototypes.
+        D: array_like
+            The matrix of squared pairwise distances between training data
+            points.
+        y: array_like
+            The labels of all training data points.
+        unique_labels: array_like
+            The unique labels in y.
 
-        Returns:
-        loss: The current GLVQ loss.
-        Grad: The current gradient of the GLVQ loss with respect to Alpha.
+        Returns
+        -------
+        loss: float
+            The current GLVQ loss.
+        Grad: array_like
+            The current gradient of the GLVQ loss with respect to Alpha.
+
         """
         # reshape Alpha back into a matrix if its flattened for optimization
         is_flat = False
@@ -280,15 +312,21 @@ class RGLVQ(BaseEstimator, ClassifierMixin):
         given test-to-training distance matrix. Each datapoint will be assigned
         to the closest prototype.
 
-        Args:
-        D: A n x m matrix of distances from the test to the training
-           datapoints.
-        is_squared: If set to true, this method assumes D is already a matrix
-                    of squared distances. Otherwise, the distances get squared.
+        Parameters
+        ----------
+        D: array_like
+            A n x m matrix of distances from the test to the training
+            datapoints.
+        is_squared: bool (optional, default = False)
+            If set to true, this method assumes D is already a matrix
+            of squared distances. Otherwise, the distances get squared.
 
-        Return:
-        y: a n-dimensional vector containing the predicted labels for each
-           datapoint.
+        Returns
+        -------
+        y: array_like
+            a n-dimensional vector containing the predicted labels for each
+            test datapoint.
+
         """
         # check the dimensionality
         n = D.shape[0]
