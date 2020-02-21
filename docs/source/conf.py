@@ -21,9 +21,10 @@ project = 'proto-dist-ml'
 copyright = '2019, Benjamin Paassen'
 author = 'Benjamin Paassen'
 
+master_doc = 'index'
+
 # The full version, including alpha/beta/rc tags
 release = '1.0.1'
-
 
 # -- General configuration ---------------------------------------------------
 
