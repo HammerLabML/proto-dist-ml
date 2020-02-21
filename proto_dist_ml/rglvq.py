@@ -63,7 +63,7 @@ class RGLVQ(BaseEstimator, ClassifierMixin):
         A squashing function to post-process each error term.
     phi_grad: function handle (optional, default=1)
         The gradient function corresponding to phi.
-    _Alpha: array_like
+    _Alpha: scipy.sparse.csr_matrix
         A K * num_labels x m matrix sparse matrix storing the convex
         coefficients that describe the prototypes.
         describe the prototypes. This is not set by the user but during fit().
@@ -95,13 +95,13 @@ class RGLVQ(BaseEstimator, ClassifierMixin):
         In more detail, the training optimizes the GLVQ loss function, which
         is given as
 
-        .. math:: sum_i \\Phi\Big(\\frac{d_i^+ - d_i^-}{d_i^+ + d_i^-}\\Big)
+        .. math:: \\sum_i \\Phi\Big(\\frac{d_i^+ - d_i^-}{d_i^+ + d_i^-}\\Big)
 
-        where i is the data point index, d_i^+ is the distance of i to the
-        closest prototype with the same label and d_i^- is the distance of the
-        closest prototype with another label. Note that i is correctly
-        classified if and only if d_i^+ < d_i^-, such that the loss is a
-        'soft' version of the classification error.
+        where i is the data point index, d_i^+ is the squared distance of i to
+        the closest prototype with the same label and d_i^- is the squared
+        distance of the closest prototype with another label. Note that i is
+        correctly classified if and only if d_i^+ < d_i^-, such that the loss
+        is a 'soft' version of the classification error.
 
         We optimize this loss via L-BFGS as implemented in scipy. Our learnble
         parameters are the convex coefficients _Alpha. We can optimize these
